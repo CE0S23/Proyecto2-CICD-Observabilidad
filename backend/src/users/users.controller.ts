@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import { InternalServerErrorException, Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateUserDto, ReplaceUserDto, UpdateUserDto } from './users.dto';
 import { UsersService } from './users.service';
@@ -12,7 +12,7 @@ export class UsersController {
   @Get()
   findAll() {
     // DEMO-FAIL-HOOK: scripts/demo.sh reemplaza la siguiente linea por un error 500 intencional
-    return this.users.findAll();
+    throw new InternalServerErrorException('DEMO: error intencional en GET /api/users');
   }
 
   @Get(':id')
