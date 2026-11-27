@@ -9,7 +9,7 @@ name: CI-CD
 
 on:
   push:
-    branches: [main, ci-optimizacion]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

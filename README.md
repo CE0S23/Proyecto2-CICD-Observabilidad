@@ -51,16 +51,24 @@ dashboards y alertas).
 ### Flujo CI/CD
 
 ```
-push a main ─▶ test (lint → Jest → build → docker compose → Playwright → artifacts)
+push a main ─▶ obs-image (imagen OpenObserve+Collector; tag = hash de docker/observability, solo se construye si cambia)
+            └▶ test: lint → Jest → build ÚNICO de la imagen app (cache gha) → compose up de ESA imagen → Playwright
+                     → si todo pasa: push de la imagen a GHCR con tag = commit SHA
                  ├──▶ report-tests (siempre) ── POST /api/default/cicd_pipeline/_json  (event=test_run)
-                 └──▶ deploy (solo si test=success) ── SSH EC2: git pull → compose build → up -d → /api/health 200
+                 └──▶ deploy (solo si test=success; concurrency deploy-ec2) ── SSH EC2: git reset al SHA probado
+                          → docker compose pull + up -d (sin build en la instancia) → /api/health 200 (polling 3 s, máx. 60 s)
                           └──▶ report-deploy (siempre) ── POST cicd_pipeline (event=deploy, status success/failure/skipped)
 ```
 Si las pruebas fallan, `deploy` queda **skipped** y **no hay conexión SSH**.
-El deploy posiciona `/opt/app` en el **SHA exacto** que aprobó las pruebas (`git reset --hard ${{ github.sha }}`),
-nunca en la punta de `main`, para no llevar a EC2 un commit posterior aún sin probar.
-Jest y Playwright se ejecutan **ambos** en cada corrida (`continue-on-error` + paso "Veredicto de pruebas"),
-de modo que un error intencional en un endpoint es detectado por Jest **y** por Playwright antes de bloquear el deploy.
+Jest y Playwright se ejecutan **ambos** en cada corrida (`continue-on-error` + paso "Veredicto de pruebas").
+En CI Playwright no reintenta y se detiene en el primer fallo (`maxFailures: 1`).
+El deploy posiciona `/opt/app` en el **SHA exacto** que aprobó las pruebas y ejecuta **la misma imagen** que se probó.
+
+| Medición | Antes | Después |
+|---|---|---|
+| Demo completa (`scripts/demo.sh`: push con fallo + push exitoso) | 12 min 55 s (≈ 8 min 15 s sin cola) | **5 min 45 s** |
+| Job test (corrida con fallo) | 3 min 08 s | 2 min 16 s |
+| Job deploy | 1 min 40 s (build en EC2) | 18 s (pull + up) |
 
 ## 2. Estructura
 
@@ -102,7 +110,7 @@ Requisitos: Docker + Docker Compose, Node 20.
 
 ```bash
 cp .env.example .env            # editar contraseñas
-docker compose up -d --build    # app (http://localhost), db y observability (http://localhost:5080)
+docker compose up -d --build    # construye localmente app y observability (http://localhost, :5080)
 curl http://localhost/api/health
 ```
 
@@ -143,6 +151,8 @@ Archivo `.github/workflows/ci-cd.yml` (push a `main` y `workflow_dispatch`).
 | `JWT_SECRET` | Secreto JWT para las pruebas en CI |
 | `DATABASE_URL` | Referencia de la BD de pruebas del runner |
 
+`GITHUB_TOKEN` (automático) publica las imágenes en GHCR y, durante el deploy, permite a la EC2 hacer `docker login`/`pull`/`logout`.
+
 Eventos enviados a OpenObserve (stream `cicd_pipeline`):
 
 ```json
@@ -164,6 +174,8 @@ Eventos enviados a OpenObserve (stream `cicd_pipeline`):
 | `HOST_LABEL` | Etiqueta `host.name` de las métricas del host |
 | `OTEL_SDK_DISABLED` | `true` para desactivar la telemetría (CI) |
 | `GIT_COMMIT` | Commit desplegado (lo escribe el pipeline) |
+| `IMAGE_TAG` / `OBS_TAG` | Tags de las imágenes en GHCR que usa la EC2 (los escribe el pipeline) |
+| `IMAGE_REGISTRY` | Registro de imágenes (por defecto `ghcr.io/ce0s23`) |
 
 ## 7. Observabilidad (OpenObserve)
 
