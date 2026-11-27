@@ -220,8 +220,10 @@ jobs:
           script: |
             set -e
             cd /opt/app
+            # Se despliega EXACTAMENTE el commit que paso las pruebas (no la punta de main,
+            # que podria contener un commit posterior aun sin probar).
             git fetch --prune origin main
-            git reset --hard origin/main
+            git reset --hard ${{ github.sha }}
             export GIT_COMMIT=${{ github.sha }}
             sed -i '/^GIT_COMMIT=/d' .env && echo "GIT_COMMIT=${{ github.sha }}" >> .env
             docker compose build
