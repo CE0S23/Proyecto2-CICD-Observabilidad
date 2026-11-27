@@ -1,0 +1,248 @@
+# Proyecto Parcial 2 - CI/CD con despliegue condicionado a las pruebas y trazabilidad en OpenObserve.
+#   test -> (report-tests: siempre)  ->  deploy (SOLO si test = success)  ->  report-deploy (siempre)
+# Si las pruebas fallan, el job deploy queda en "skipped": NO hay conexion SSH hacia la EC2.
+name: CI-CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  test:
+    name: Pruebas (lint, Jest, build, Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    outputs:
+      total: ${{ steps.counts.outputs.total }}
+      passed: ${{ steps.counts.outputs.passed }}
+      failed: ${{ steps.counts.outputs.failed }}
+      skipped: ${{ steps.counts.outputs.skipped }}
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci_test" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_test?schema=public
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-jwt-secret' }}
+      OTEL_SDK_DISABLED: 'true'
+      LOG_LEVEL: silent
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+            e2e/package-lock.json
+
+      - name: Instalar dependencias del backend
+        working-directory: backend
+        run: npm ci && npx prisma generate
+
+      - name: Lint + typecheck (backend)
+        working-directory: backend
+        run: npm run lint && npm run typecheck
+
+      - name: Migraciones en la BD de pruebas
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Jest (unitarias + API con supertest)
+        working-directory: backend
+        run: npm run test:ci
+
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
+
+      - name: Build frontend (Angular)
+        working-directory: frontend
+        run: npm ci && npx ng build --configuration production
+
+      - name: Levantar app + db con docker compose
+        run: |
+          cp .env.example .env
+          {
+            echo "POSTGRES_PASSWORD=ci-$(openssl rand -hex 8)"
+            echo "JWT_SECRET=ci-$(openssl rand -hex 24)"
+            echo "SEED_ADMIN_PASSWORD=Admin12345!"
+            echo "OTEL_SDK_DISABLED=true"
+            echo "GIT_COMMIT=${GITHUB_SHA}"
+          } >> .env
+          docker compose up -d --build app db
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost/api/health; then echo; echo "App lista"; exit 0; fi
+            sleep 3
+          done
+          docker compose logs app | tail -100
+          exit 1
+
+      - name: Instalar Playwright
+        working-directory: e2e
+        run: npm ci && npx playwright install --with-deps chromium
+
+      - name: Playwright (E2E navegador + API)
+        working-directory: e2e
+        env:
+          BASE_URL: http://localhost
+          CI: 'true'
+        run: npx playwright test
+
+      - name: Logs de la app (si algo fallo)
+        if: failure()
+        run: docker compose logs --tail=200 app || true
+
+      - name: Contar pruebas (JUnit XML)
+        id: counts
+        if: always()
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import glob, xml.etree.ElementTree as ET
+          total = failed = skipped = 0
+          for f in glob.glob('backend/reports/*.xml') + glob.glob('e2e/reports/*.xml'):
+              root = ET.parse(f).getroot()
+              suites = [root] if root.tag == 'testsuite' else root.findall('testsuite')
+              for s in suites:
+                  total += int(s.get('tests', 0))
+                  failed += int(s.get('failures', 0)) + int(s.get('errors', 0))
+                  skipped += int(s.get('skipped', 0))
+          print(f"total={total}")
+          print(f"failed={failed}")
+          print(f"skipped={skipped}")
+          print(f"passed={total - failed - skipped}")
+          PY
+          cat "$GITHUB_OUTPUT"
+
+      - name: Subir reportes JUnit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-reports
+          path: |
+            backend/reports/*.xml
+            e2e/reports/*.xml
+          if-no-files-found: warn
+
+      - name: Subir reporte HTML de Playwright
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report
+          path: |
+            e2e/reports/html
+            e2e/test-results
+          if-no-files-found: warn
+
+  report-tests:
+    name: Reportar pruebas a OpenObserve
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enviar evento test_run
+        env:
+          O2_URL: ${{ secrets.O2_URL }}
+          O2_USER: ${{ secrets.O2_USER }}
+          O2_PASSWORD: ${{ secrets.O2_PASSWORD }}
+          STATUS: ${{ needs.test.result == 'success' && 'success' || 'failure' }}
+          RESULT: ${{ needs.test.result }}
+          TOTAL: ${{ needs.test.outputs.total || 0 }}
+          PASSED: ${{ needs.test.outputs.passed || 0 }}
+          FAILED: ${{ needs.test.outputs.failed || 0 }}
+          SKIPPED: ${{ needs.test.outputs.skipped || 0 }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          payload=$(jq -n \
+            --arg event "test_run" --arg status "$STATUS" --arg job_result "$RESULT" \
+            --arg commit_sha "$GITHUB_SHA" --arg branch "$GITHUB_REF_NAME" --arg actor "$GITHUB_ACTOR" \
+            --arg run_id "$GITHUB_RUN_ID" --arg run_number "$GITHUB_RUN_NUMBER" \
+            --arg run_url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --arg workflow "$GITHUB_WORKFLOW" --arg repository "$GITHUB_REPOSITORY" \
+            --arg commit_message "${COMMIT_MSG%%$'\n'*}" \
+            --argjson tests_total "$TOTAL" --argjson tests_passed "$PASSED" \
+            --argjson tests_failed "$FAILED" --argjson tests_skipped "$SKIPPED" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '[{event:$event,status:$status,job_result:$job_result,commit_sha:$commit_sha,branch:$branch,actor:$actor,
+               run_id:$run_id,run_number:$run_number,run_url:$run_url,workflow:$workflow,repository:$repository,
+               commit_message:$commit_message,tests_total:$tests_total,tests_passed:$tests_passed,
+               tests_failed:$tests_failed,tests_skipped:$tests_skipped,timestamp:$timestamp}]')
+          echo "$payload"
+          curl -fsS -X POST "$O2_URL/api/default/cicd_pipeline/_json" \
+            -u "$O2_USER:$O2_PASSWORD" -H 'Content-Type: application/json' -d "$payload"
+
+  deploy:
+    name: Desplegar en AWS EC2
+    needs: test
+    if: success()
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: SSH a EC2 -> git pull -> docker compose build/up -> health check
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 35m
+          script: |
+            set -e
+            cd /opt/app
+            git fetch --prune origin main
+            git reset --hard origin/main
+            export GIT_COMMIT=${{ github.sha }}
+            sed -i '/^GIT_COMMIT=/d' .env && echo "GIT_COMMIT=${{ github.sha }}" >> .env
+            docker compose build
+            docker compose up -d --remove-orphans
+            docker image prune -f >/dev/null
+            for i in $(seq 1 60); do
+              code=$(curl -s -o /dev/null -w '%{http_code}' -H 'x-health-probe: 1' http://localhost/api/health || true)
+              if [ "$code" = "200" ]; then echo "Health OK (200)"; docker compose ps; exit 0; fi
+              sleep 5
+            done
+            echo "La app no respondio 200 en /api/health"; docker compose logs --tail=100 app; exit 1
+
+  report-deploy:
+    name: Reportar deploy a OpenObserve
+    needs: [test, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enviar evento deploy
+        env:
+          O2_URL: ${{ secrets.O2_URL }}
+          O2_USER: ${{ secrets.O2_USER }}
+          O2_PASSWORD: ${{ secrets.O2_PASSWORD }}
+          STATUS: ${{ needs.deploy.result }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          payload=$(jq -n \
+            --arg event "deploy" --arg status "$STATUS" \
+            --arg ssh_executed "$([ "$STATUS" = skipped ] && echo false || echo true)" \
+            --arg commit_sha "$GITHUB_SHA" --arg branch "$GITHUB_REF_NAME" --arg actor "$GITHUB_ACTOR" \
+            --arg run_id "$GITHUB_RUN_ID" --arg run_url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --arg workflow "$GITHUB_WORKFLOW" --arg target "ec2:$EC2_HOST" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '[{event:$event,status:$status,ssh_executed:$ssh_executed,commit_sha:$commit_sha,branch:$branch,actor:$actor,
+               run_id:$run_id,run_url:$run_url,workflow:$workflow,target:$target,timestamp:$timestamp}]')
+          echo "$payload"
+          curl -fsS -X POST "$O2_URL/api/default/cicd_pipeline/_json" \
+            -u "$O2_USER:$O2_PASSWORD" -H 'Content-Type: application/json' -d "$payload"

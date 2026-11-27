@@ -1,0 +1,17 @@
+{
+  "name": "proyecto2-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pruebas E2E (navegador) y de API con Playwright",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --project=ui",
+    "test:api": "playwright test --project=api",
+    "report": "playwright show-report reports/html"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1",
+    "@types/node": "20.17.10",
+    "typescript": "5.7.2"
+  }
+}

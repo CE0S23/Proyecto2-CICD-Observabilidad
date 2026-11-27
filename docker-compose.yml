@@ -1,0 +1,87 @@
+# Proyecto Parcial 2 - SOLO 3 contenedores (indicacion del profesor):
+#   1) app           = NGINX + backend NestJS (supervisord)      -> puerto 80 publico
+#   2) db            = PostgreSQL 16 con volumen persistente      -> solo red interna
+#   3) observability = OpenObserve + OpenTelemetry Collector      -> puerto 5080 publico (UI)
+# Las variables sensibles se leen de .env (ver .env.example).
+name: proyecto2
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-local}
+    image: proyecto2-app:latest
+    container_name: proyecto2-app
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:80:80"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-2h}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@proyecto2.com}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+      APP_ENV: ${APP_ENV:-production}
+      APP_VERSION: ${APP_VERSION:-1.0.0}
+      GIT_COMMIT: ${GIT_COMMIT:-local}
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-false}
+      OTEL_SERVICE_NAME: proyecto2-backend
+      OTEL_SEMCONV_STABILITY_OPT_IN: http
+      # El collector corre con red del host (para medir la red real de la EC2); se alcanza via host-gateway.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://host.docker.internal:4318
+      OTEL_COLLECTOR_GRPC: host.docker.internal:4317
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [backend]
+
+  db:
+    image: postgres:16-alpine
+    container_name: proyecto2-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Postgres escucha en 0.0.0.0 dentro de la red interna; NO se publica ningun puerto al host.
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    command: ["postgres", "-c", "listen_addresses=0.0.0.0"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [backend]
+
+  observability:
+    build:
+      context: .
+      dockerfile: docker/observability/Dockerfile
+    image: proyecto2-observability:latest
+    container_name: proyecto2-observability
+    restart: unless-stopped
+    # Red del host: hostmetrics mide CPU/RAM/red/disco reales de la EC2; publica 5080 (UI) en 0.0.0.0.
+    network_mode: host
+    environment:
+      ZO_ROOT_USER_EMAIL: ${O2_USER}
+      ZO_ROOT_USER_PASSWORD: ${O2_PASSWORD}
+      HOST_LABEL: ${HOST_LABEL:-ec2-proyecto2}
+    volumes:
+      - o2data:/data
+      - /:/hostfs:ro
+      - /proc:/hostfs/proc:ro
+      - /sys:/hostfs/sys:ro
+
+volumes:
+  pgdata:
+  o2data:
+
+networks:
+  backend:
+    driver: bridge
