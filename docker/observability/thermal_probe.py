@@ -22,6 +22,7 @@ AUTH = base64.b64encode(
 ).decode()
 HOST = os.environ.get("HOST_LABEL", "ec2")
 INTERVAL = int(os.environ.get("THERMAL_INTERVAL", "30"))
+VALID_MIN, VALID_MAX = -40.0, 150.0
 
 
 def read_sensors():
@@ -30,14 +31,23 @@ def read_sensors():
         sensors.append(("thermal_zone", path))
     for path in glob.glob(f"{ROOT}/sys/class/hwmon/hwmon*/temp*_input"):
         sensors.append(("hwmon", path))
-    values = []
+    values, invalid = [], []
     for kind, path in sensors:
         try:
             with open(path) as fh:
-                values.append({"kind": kind, "path": path.replace(ROOT, ""), "celsius": int(fh.read().strip()) / 1000.0})
+                celsius = int(fh.read().strip()) / 1000.0
         except (OSError, ValueError):
             continue
-    return values
+        name = ""
+        try:
+            with open(os.path.join(os.path.dirname(path), "name")) as fh:
+                name = fh.read().strip()
+        except OSError:
+            pass
+        item = {"kind": kind, "name": name, "path": path.replace(ROOT, ""), "celsius": celsius}
+        # Lecturas fisicamente imposibles (p. ej. -273.15 C del controlador NVMe virtual de EBS) no son datos reales.
+        (values if VALID_MIN <= celsius <= VALID_MAX else invalid).append(item)
+    return values, invalid
 
 
 def listing(path):
@@ -49,7 +59,7 @@ def listing(path):
 
 def main():
     while True:
-        values = read_sensors()
+        values, invalid = read_sensors()
         record = {
             "host": HOST,
             "metric": "host_temperature",
@@ -57,8 +67,12 @@ def main():
             "temperature_c": max(v["celsius"] for v in values) if values else None,
             "sensors_found": len(values),
             "sensors": json.dumps(values),
+            "invalid_sensors": json.dumps(invalid),
             "status": "OK" if values else "N/D",
-            "reason": "" if values else "El hipervisor de EC2 no expone sensores termicos (sin thermal_zone ni temp*_input)",
+            "reason": ""
+            if values
+            else "EC2 (hipervisor Nitro) no expone sensores termicos de CPU: no hay thermal_zone; "
+            "hwmon solo tiene el sensor virtual nvme (EBS) que reporta -273.15 C (valor invalido)",
             "thermal_dir": ",".join(listing("/sys/class/thermal")),
             "hwmon_dir": ",".join(listing("/sys/class/hwmon")),
         }
