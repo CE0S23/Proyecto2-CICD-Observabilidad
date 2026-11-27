@@ -57,6 +57,8 @@ push a main ─▶ test (lint → Jest → build → docker compose → Playwrig
                           └──▶ report-deploy (siempre) ── POST cicd_pipeline (event=deploy, status success/failure/skipped)
 ```
 Si las pruebas fallan, `deploy` queda **skipped** y **no hay conexión SSH**.
+El deploy posiciona `/opt/app` en el **SHA exacto** que aprobó las pruebas (`git reset --hard ${{ github.sha }}`),
+nunca en la punta de `main`, para no llevar a EC2 un commit posterior aún sin probar.
 Jest y Playwright se ejecutan **ambos** en cada corrida (`continue-on-error` + paso "Veredicto de pruebas"),
 de modo que un error intencional en un endpoint es detectado por Jest **y** por Playwright antes de bloquear el deploy.
 
@@ -184,8 +186,10 @@ Las instancias EC2 son VMs sobre el hipervisor Nitro y **no exponen sensores té
 ```
 $ ls /sys/class/thermal
 cooling_device0  cooling_device1        # no hay thermal_zone*
-$ ls /sys/class/hwmon/hwmon0
-...                                     # sin temp*_input
+$ cat /sys/class/hwmon/hwmon0/name
+nvme                                    # controlador NVMe virtual del volumen EBS
+$ cat /sys/class/hwmon/hwmon0/temp1_input
+-273150                                 # -273.15 °C: valor de relleno, no es una lectura real
 ```
 
 La sonda `thermal_probe.py` lee esas rutas reales cada 30 s y publica `available=false`, `temperature_c=null`,
