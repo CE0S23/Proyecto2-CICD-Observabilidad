@@ -5,8 +5,8 @@
   "description": "Pruebas E2E (navegador) y de API con Playwright",
   "scripts": {
     "test": "playwright test",
-    "test:ui": "playwright test --project=ui",
-    "test:api": "playwright test --project=api",
+    "test:ui": "playwright test ui.spec",
+    "test:api": "playwright test api.spec",
     "report": "playwright show-report reports/html"
   },
   "devDependencies": {

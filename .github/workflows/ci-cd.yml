@@ -1,25 +1,67 @@
 # Proyecto Parcial 2 - CI/CD con despliegue condicionado a las pruebas y trazabilidad en OpenObserve.
-#   test -> (report-tests: siempre)  ->  deploy (SOLO si test = success)  ->  report-deploy (siempre)
+#   obs-image ─┐
+#   test ──────┼─> deploy (SOLO si test = success)  ->  report-deploy (siempre)
+#      └──────────> report-tests (siempre)
+# La imagen "app" se construye UNA vez en el job test (cache de capas en GitHub Actions), se prueba esa misma
+# imagen con Playwright y, si todo pasa, se publica en GHCR con tag = commit SHA. La EC2 solo hace pull + up.
 # Si las pruebas fallan, el job deploy queda en "skipped": NO hay conexion SSH hacia la EC2.
 name: CI-CD
 
 on:
   push:
-    branches: [main]
+    branches: [main, ci-optimizacion]
   workflow_dispatch:
 
-concurrency:
-  group: ci-cd-${{ github.ref }}
-  cancel-in-progress: false
+permissions:
+  contents: read
+  packages: write
 
 env:
   NODE_VERSION: '20'
+  REGISTRY: ghcr.io/ce0s23
+  APP_IMAGE: ghcr.io/ce0s23/proyecto2-app
 
 jobs:
+  # Imagen de observabilidad (OpenObserve + Collector): tag = hash de docker/observability, solo se construye si cambia.
+  obs-image:
+    name: Imagen observability
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: tag
+        run: echo "tag=obs-$(echo '${{ hashFiles('docker/observability/**') }}' | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: exists
+        run: |
+          if docker manifest inspect "$REGISTRY/proyecto2-observability:${{ steps.tag.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"; echo "La imagen ya existe en GHCR: no se reconstruye"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.exists.outputs.exists != 'true'
+        uses: docker/setup-buildx-action@v3
+      - if: steps.exists.outputs.exists != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/observability/Dockerfile
+          push: true
+          provenance: false
+          tags: ${{ env.REGISTRY }}/proyecto2-observability:${{ steps.tag.outputs.tag }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=observability
+          cache-to: type=gha,mode=max,scope=observability
+
   test:
     name: Pruebas (lint, Jest, build, Playwright)
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 25
     outputs:
       total: ${{ steps.counts.outputs.total }}
       passed: ${{ steps.counts.outputs.passed }}
@@ -34,7 +76,7 @@ jobs:
           POSTGRES_DB: ci_test
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U ci -d ci_test" --health-interval 5s --health-timeout 5s --health-retries 20
+          --health-cmd "pg_isready -U ci -d ci_test" --health-interval 3s --health-timeout 3s --health-retries 30
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_test?schema=public
       JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-jwt-secret' }}
@@ -44,7 +86,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Node.js ${{ env.NODE_VERSION }}
+      - name: Node.js ${{ env.NODE_VERSION }} (cache npm)
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -54,17 +96,15 @@ jobs:
             frontend/package-lock.json
             e2e/package-lock.json
 
-      - name: Instalar dependencias del backend
-        working-directory: backend
-        run: npm ci && npx prisma generate
+      - name: Instalar dependencias (backend + e2e)
+        run: |
+          (cd backend && npm ci --no-audit --no-fund && npx prisma generate) &
+          (cd e2e && npm ci --no-audit --no-fund) &
+          wait
 
       - name: Lint + typecheck (backend)
         working-directory: backend
         run: npm run lint && npm run typecheck
-
-      - name: Migraciones en la BD de pruebas
-        working-directory: backend
-        run: npx prisma migrate deploy
 
       # Jest no detiene el job: Playwright tambien se ejecuta y el veredicto final se toma
       # en "Veredicto de pruebas" (si Jest o Playwright fallan, el job falla y NO hay deploy).
@@ -72,17 +112,26 @@ jobs:
         id: jest
         continue-on-error: true
         working-directory: backend
-        run: npm run test:ci
+        run: npx prisma migrate deploy && npm run test:ci
 
-      - name: Build backend
-        working-directory: backend
-        run: npm run build
+      - name: Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Build frontend (Angular)
-        working-directory: frontend
-        run: npm ci && npx ng build --configuration production
+      - name: Build imagen app (frontend Angular + backend NestJS + NGINX), una sola vez
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/app/Dockerfile
+          load: true
+          push: false
+          provenance: false
+          build-args: GIT_COMMIT=${{ github.sha }}
+          tags: ${{ env.APP_IMAGE }}:${{ github.sha }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,mode=max,scope=app
 
-      - name: Levantar app + db con docker compose
+      - name: Levantar ESA imagen + db con docker compose
         run: |
           cp .env.example .env
           {
@@ -91,18 +140,31 @@ jobs:
             echo "SEED_ADMIN_PASSWORD=Admin12345!"
             echo "OTEL_SDK_DISABLED=true"
             echo "GIT_COMMIT=${GITHUB_SHA}"
+            echo "IMAGE_TAG=${GITHUB_SHA}"
           } >> .env
-          docker compose up -d --build app db
-          for i in $(seq 1 60); do
+          docker compose up -d --no-build app db
+          for i in $(seq 1 40); do
             if curl -fsS http://localhost/api/health; then echo; echo "App lista"; exit 0; fi
-            sleep 3
+            sleep 2
           done
           docker compose logs app | tail -100
           exit 1
 
-      - name: Instalar Playwright
+      - name: Version de Playwright
+        id: pw
+        run: echo "version=$(node -p "require('./e2e/node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache de navegadores Playwright
+        id: pwcache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Instalar Chromium (solo si no hay cache)
+        if: steps.pwcache.outputs.cache-hit != 'true'
         working-directory: e2e
-        run: npm ci && npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Playwright (E2E navegador + API)
         id: playwright
@@ -121,8 +183,13 @@ jobs:
             exit 1
           fi
 
+      - name: Publicar imagen probada en GHCR (tag = commit SHA)
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker push "$APP_IMAGE:$GITHUB_SHA"
+
       - name: Logs de la app (si algo fallo)
-        if: failure() || steps.playwright.outcome == 'failure'
+        if: failure()
         run: docker compose logs --tail=200 app || true
 
       - name: Contar pruebas (JUnit XML)
@@ -200,41 +267,55 @@ jobs:
                commit_message:$commit_message,tests_total:$tests_total,tests_passed:$tests_passed,
                tests_failed:$tests_failed,tests_skipped:$tests_skipped,timestamp:$timestamp}]')
           echo "$payload"
-          curl -fsS -X POST "$O2_URL/api/default/cicd_pipeline/_json" \
+          curl -fsS --retry 10 --retry-all-errors --retry-delay 3 -X POST "$O2_URL/api/default/cicd_pipeline/_json" \
             -u "$O2_USER:$O2_PASSWORD" -H 'Content-Type: application/json' -d "$payload"
 
   deploy:
     name: Desplegar en AWS EC2
-    needs: test
+    needs: [test, obs-image]
     if: success()
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 10
+    # Un solo despliegue a la vez hacia la EC2 (las corridas de test nunca se cancelan).
+    concurrency:
+      group: deploy-ec2
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
     steps:
-      - name: SSH a EC2 -> git pull -> docker compose build/up -> health check
+      - name: SSH a EC2 -> commit exacto -> docker compose pull + up -d -> health check
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          SHA: ${{ github.sha }}
+          OBS_TAG: ${{ needs.obs-image.outputs.tag }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          command_timeout: 35m
+          envs: SHA,OBS_TAG,GHCR_USER,GHCR_TOKEN
+          command_timeout: 8m
           script: |
             set -e
             cd /opt/app
-            # Se despliega EXACTAMENTE el commit que paso las pruebas (no la punta de main,
-            # que podria contener un commit posterior aun sin probar).
-            git fetch --prune origin main
-            git reset --hard ${{ github.sha }}
-            export GIT_COMMIT=${{ github.sha }}
-            sed -i '/^GIT_COMMIT=/d' .env && echo "GIT_COMMIT=${{ github.sha }}" >> .env
-            docker compose build
-            docker compose up -d --remove-orphans
-            docker image prune -f >/dev/null
-            for i in $(seq 1 60); do
+            # Se despliega EXACTAMENTE el commit que paso las pruebas (no la punta de la rama).
+            git fetch --prune --quiet origin
+            git reset --hard "$SHA"
+            sed -i '/^\(GIT_COMMIT\|IMAGE_TAG\|OBS_TAG\)=/d' .env
+            printf 'GIT_COMMIT=%s\nIMAGE_TAG=%s\nOBS_TAG=%s\n' "$SHA" "$SHA" "$OBS_TAG" >> .env
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin >/dev/null
+            docker compose pull --quiet app observability
+            docker logout ghcr.io >/dev/null
+            # Nada de build en la instancia: solo se usan las imagenes ya probadas en CI.
+            docker compose up -d --no-build --remove-orphans
+            for i in $(seq 1 20); do
               code=$(curl -s -o /dev/null -w '%{http_code}' -H 'x-health-probe: 1' http://localhost/api/health || true)
-              if [ "$code" = "200" ]; then echo "Health OK (200)"; docker compose ps; exit 0; fi
-              sleep 5
+              if [ "$code" = "200" ]; then echo "Health OK (200) tras $((i * 3)) s"; docker compose ps; docker image prune -f >/dev/null; exit 0; fi
+              sleep 3
             done
-            echo "La app no respondio 200 en /api/health"; docker compose logs --tail=100 app; exit 1
+            echo "La app no respondio 200 en /api/health en 60 s"; docker compose logs --tail=100 app; exit 1
 
   report-deploy:
     name: Reportar deploy a OpenObserve
@@ -260,5 +341,5 @@ jobs:
             '[{event:$event,status:$status,ssh_executed:$ssh_executed,commit_sha:$commit_sha,branch:$branch,actor:$actor,
                run_id:$run_id,run_url:$run_url,workflow:$workflow,target:$target,timestamp:$timestamp}]')
           echo "$payload"
-          curl -fsS -X POST "$O2_URL/api/default/cicd_pipeline/_json" \
+          curl -fsS --retry 10 --retry-all-errors --retry-delay 3 -X POST "$O2_URL/api/default/cicd_pipeline/_json" \
             -u "$O2_USER:$O2_PASSWORD" -H 'Content-Type: application/json' -d "$payload"

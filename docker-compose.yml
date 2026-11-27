@@ -12,7 +12,7 @@ services:
       dockerfile: docker/app/Dockerfile
       args:
         GIT_COMMIT: ${GIT_COMMIT:-local}
-    image: proyecto2-app:latest
+    image: ${IMAGE_REGISTRY:-ghcr.io/ce0s23}/proyecto2-app:${IMAGE_TAG:-local}
     container_name: proyecto2-app
     restart: unless-stopped
     ports:
@@ -63,7 +63,7 @@ services:
     build:
       context: .
       dockerfile: docker/observability/Dockerfile
-    image: proyecto2-observability:latest
+    image: ${IMAGE_REGISTRY:-ghcr.io/ce0s23}/proyecto2-observability:${OBS_TAG:-local}
     container_name: proyecto2-observability
     restart: unless-stopped
     # Red del host: hostmetrics mide CPU/RAM/red/disco reales de la EC2; publica 5080 (UI) en 0.0.0.0.
