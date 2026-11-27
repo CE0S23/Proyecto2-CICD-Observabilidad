@@ -51,7 +51,8 @@ if [ -n "${O2_URL:-}" ] && [ -n "${O2_USER:-}" ] && [ -n "${O2_PASSWORD:-}" ]; t
   curl -fsS -u "$O2_USER:$O2_PASSWORD" -H 'Content-Type: application/json' \
     -X POST "$O2_URL/api/default/_search?type=logs" \
     -d "{\"query\":{\"sql\":\"SELECT _timestamp, event, status, commit_sha, branch, actor FROM \\\"cicd_pipeline\\\" WHERE commit_sha IN ('$FAIL_SHA','$OK_SHA') ORDER BY _timestamp\",\"start_time\":$start,\"end_time\":$end,\"from\":0,\"size\":50}}" \
-    | jq '.hits'
+    | python3 -c "import sys,json; [print(json.dumps(h, ensure_ascii=False)) for h in json.load(sys.stdin)['hits']]" 2>/dev/null \
+    || python -c "import sys,json; [print(json.dumps(h, ensure_ascii=False)) for h in json.load(sys.stdin)['hits']]"
 else
   echo "Define O2_URL, O2_USER y O2_PASSWORD para consultar los eventos."
 fi

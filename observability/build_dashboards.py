@@ -50,7 +50,7 @@ def sql_panel(grid, title, ptype, stream, stype, sql, x, y, z=None, w=24, h=9, u
         "queries": [{
             "query": sql,
             "customQuery": True,
-            "fields": {"stream": stream, "stream_type": stype, "x": x, "y": y, "z": z or [], "breakdown": [],
+            "fields": {"stream": stream, "stream_type": stype, "x": x, "y": y, "z": [], "breakdown": z or [],
                        "filter": {"filterType": "group", "logicalOperator": "AND", "conditions": []}},
             "config": {"promql_legend": "", "limit": 0, "min": 0, "max": 100, "time_shift": []},
         }],
@@ -120,7 +120,7 @@ def app_dashboard():
         sql_panel(g, "Latencia p50 / p95 por endpoint (ms)", "line", "app_logs", "logs",
                   f"SELECT {TS} AS x_axis_1, method || ' ' || route AS breakdown_1, approx_percentile_cont(latency_ms, 0.95) AS y_axis_1 "
                   f"FROM {REQ} GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1",
-                  [axis("x_axis_1", "Tiempo", "histogram")], [axis("y_axis_1", "p95 ms", "p95", COLORS[2])], w=24, h=10, unit="milliseconds",
+                  [axis("x_axis_1", "Tiempo", "histogram")], [axis("y_axis_1", "p95 ms")], z=[axis("breakdown_1", "Endpoint")], w=24, h=10, unit="milliseconds",
                   desc="p95 por endpoint (method + route). La tabla de la derecha muestra p50 y p95."),
         sql_panel(g, "Latencia por endpoint: p50, p95, promedio", "table", "app_logs", "logs",
                   f"SELECT method || ' ' || route AS x_axis_1, count(*) AS y_axis_1, approx_percentile_cont(latency_ms, 0.5) AS y_axis_2, "
@@ -130,7 +130,7 @@ def app_dashboard():
         sql_panel(g, "Peticiones por segundo (RPS) por endpoint", "line", "app_logs", "logs",
                   f"SELECT histogram(_timestamp, '1 minute') AS x_axis_1, method || ' ' || route AS breakdown_1, count(*) / 60.0 AS y_axis_1 "
                   f"FROM {REQ} GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1",
-                  [axis("x_axis_1", "Tiempo", "histogram")], [axis("y_axis_1", "req/s", None, COLORS[1])], w=24, h=10),
+                  [axis("x_axis_1", "Tiempo", "histogram")], [axis("y_axis_1", "req/s")], z=[axis("breakdown_1", "Endpoint")], w=24, h=10),
         sql_panel(g, "Tasa de errores 4xx / 5xx en el tiempo (%)", "line", "app_logs", "logs",
                   f"SELECT histogram(_timestamp, '1 minute') AS x_axis_1, "
                   f"100.0 * sum(CASE WHEN statuscode >= 400 AND statuscode < 500 THEN 1 ELSE 0 END) / count(*) AS y_axis_1, "

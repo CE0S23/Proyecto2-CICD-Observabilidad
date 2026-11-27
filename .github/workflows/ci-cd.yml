@@ -66,7 +66,11 @@ jobs:
         working-directory: backend
         run: npx prisma migrate deploy
 
+      # Jest no detiene el job: Playwright tambien se ejecuta y el veredicto final se toma
+      # en "Veredicto de pruebas" (si Jest o Playwright fallan, el job falla y NO hay deploy).
       - name: Jest (unitarias + API con supertest)
+        id: jest
+        continue-on-error: true
         working-directory: backend
         run: npm run test:ci
 
@@ -101,14 +105,24 @@ jobs:
         run: npm ci && npx playwright install --with-deps chromium
 
       - name: Playwright (E2E navegador + API)
+        id: playwright
+        continue-on-error: true
         working-directory: e2e
         env:
           BASE_URL: http://localhost
           CI: 'true'
         run: npx playwright test
 
+      - name: Veredicto de pruebas (Jest + Playwright)
+        run: |
+          echo "Jest: ${{ steps.jest.outcome }} | Playwright: ${{ steps.playwright.outcome }}"
+          if [ "${{ steps.jest.outcome }}" != "success" ] || [ "${{ steps.playwright.outcome }}" != "success" ]; then
+            echo "::error::Fallaron pruebas automatizadas (Jest=${{ steps.jest.outcome }}, Playwright=${{ steps.playwright.outcome }}). Deploy bloqueado."
+            exit 1
+          fi
+
       - name: Logs de la app (si algo fallo)
-        if: failure()
+        if: failure() || steps.playwright.outcome == 'failure'
         run: docker compose logs --tail=200 app || true
 
       - name: Contar pruebas (JUnit XML)

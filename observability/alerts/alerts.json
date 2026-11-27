@@ -1,0 +1,162 @@
+{
+  "template": {
+    "name": "registro_alerta",
+    "type": "http",
+    "title": "",
+    "body": "[{\"alert_name\": \"{alert_name}\", \"alert_type\": \"{alert_type}\", \"stream_name\": \"{stream_name}\", \"alert_period\": \"{alert_period}\", \"alert_operator\": \"{alert_operator}\", \"alert_threshold\": \"{alert_threshold}\", \"alert_count\": \"{alert_count}\", \"alert_start_time\": \"{alert_start_time}\", \"alert_end_time\": \"{alert_end_time}\", \"rows\": \"{rows}\", \"alert_url\": \"{alert_url}\"}]"
+  },
+  "destination": {
+    "name": "webhook_alert_events",
+    "type": "http",
+    "url": "http://127.0.0.1:5080/api/default/alert_events/_json",
+    "method": "post",
+    "skip_tls_verify": false,
+    "template": "registro_alerta",
+    "headers": {
+      "Authorization": "Basic <O2_USER:O2_PASSWORD en base64>",
+      "Content-Type": "application/json"
+    }
+  },
+  "alerts": [
+    {
+      "name": "app_5xx_rate_gt_5pct",
+      "description": "Tasa de errores 5xx mayor a 5% en los ultimos 5 minutos",
+      "stream_type": "logs",
+      "stream_name": "app_logs",
+      "is_real_time": false,
+      "enabled": true,
+      "query_condition": {
+        "type": "sql",
+        "conditions": null,
+        "sql": "SELECT 100.0 * sum(CASE WHEN statuscode >= 500 THEN 1 ELSE 0 END) / count(*) AS error_5xx_pct, count(*) AS total FROM \"app_logs\" WHERE event = 'http_request' HAVING error_5xx_pct > 5",
+        "promql": null,
+        "promql_condition": null,
+        "aggregation": null,
+        "vrl_function": null,
+        "search_event_type": null,
+        "multi_time_range": []
+      },
+      "trigger_condition": {
+        "period": 5,
+        "operator": ">=",
+        "threshold": 1,
+        "frequency": 1,
+        "frequency_type": "minutes",
+        "cron": "",
+        "silence": 10,
+        "timezone": "UTC"
+      },
+      "destinations": [
+        "webhook_alert_events"
+      ],
+      "context_attributes": {},
+      "row_template": "",
+      "tz_offset": 0
+    },
+    {
+      "name": "app_latency_p95_gt_1s",
+      "description": "Latencia p95 de la API mayor a 1 segundo en los ultimos 5 minutos",
+      "stream_type": "logs",
+      "stream_name": "app_logs",
+      "is_real_time": false,
+      "enabled": true,
+      "query_condition": {
+        "type": "sql",
+        "conditions": null,
+        "sql": "SELECT approx_percentile_cont(latency_ms, 0.95) AS p95_ms, count(*) AS total FROM \"app_logs\" WHERE event = 'http_request' HAVING p95_ms > 1000",
+        "promql": null,
+        "promql_condition": null,
+        "aggregation": null,
+        "vrl_function": null,
+        "search_event_type": null,
+        "multi_time_range": []
+      },
+      "trigger_condition": {
+        "period": 5,
+        "operator": ">=",
+        "threshold": 1,
+        "frequency": 1,
+        "frequency_type": "minutes",
+        "cron": "",
+        "silence": 10,
+        "timezone": "UTC"
+      },
+      "destinations": [
+        "webhook_alert_events"
+      ],
+      "context_attributes": {},
+      "row_template": "",
+      "tz_offset": 0
+    },
+    {
+      "name": "host_cpu_gt_80pct",
+      "description": "Uso de CPU de la instancia EC2 mayor a 80% (promedio 5 minutos)",
+      "stream_type": "metrics",
+      "stream_name": "system_cpu_utilization",
+      "is_real_time": false,
+      "enabled": true,
+      "query_condition": {
+        "type": "sql",
+        "conditions": null,
+        "sql": "SELECT 100 * (1 - avg(value)) AS cpu_pct FROM \"system_cpu_utilization\" WHERE state = 'idle' HAVING cpu_pct > 80",
+        "promql": null,
+        "promql_condition": null,
+        "aggregation": null,
+        "vrl_function": null,
+        "search_event_type": null,
+        "multi_time_range": []
+      },
+      "trigger_condition": {
+        "period": 5,
+        "operator": ">=",
+        "threshold": 1,
+        "frequency": 1,
+        "frequency_type": "minutes",
+        "cron": "",
+        "silence": 10,
+        "timezone": "UTC"
+      },
+      "destinations": [
+        "webhook_alert_events"
+      ],
+      "context_attributes": {},
+      "row_template": "",
+      "tz_offset": 0
+    },
+    {
+      "name": "pipeline_failure",
+      "description": "Una ejecucion del pipeline CI/CD reporto status failure",
+      "stream_type": "logs",
+      "stream_name": "cicd_pipeline",
+      "is_real_time": false,
+      "enabled": true,
+      "query_condition": {
+        "type": "sql",
+        "conditions": null,
+        "sql": "SELECT event, status, commit_sha, branch, actor, run_url FROM \"cicd_pipeline\" WHERE status = 'failure'",
+        "promql": null,
+        "promql_condition": null,
+        "aggregation": null,
+        "vrl_function": null,
+        "search_event_type": null,
+        "multi_time_range": []
+      },
+      "trigger_condition": {
+        "period": 2,
+        "operator": ">=",
+        "threshold": 1,
+        "frequency": 1,
+        "frequency_type": "minutes",
+        "cron": "",
+        "silence": 1,
+        "timezone": "UTC"
+      },
+      "destinations": [
+        "webhook_alert_events"
+      ],
+      "context_attributes": {},
+      "row_template": "",
+      "tz_offset": 0
+    }
+  ]
+}

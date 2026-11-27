@@ -1,0 +1,1067 @@
+{
+  "version": 5,
+  "dashboardId": "7531921561171787776",
+  "title": "Aplicación",
+  "description": "Latencia p50/p95 por endpoint, RPS, tasa de errores, status codes, logs y trazas (RF-04 / RF-06)",
+  "role": "",
+  "owner": "admin@proyecto2.com",
+  "created": "2026-11-27T03:36:31.406418480Z",
+  "tabs": [
+    {
+      "tabId": "default",
+      "name": "Default",
+      "panels": [
+        {
+          "id": "Panel_1",
+          "type": "metric",
+          "title": "Peticiones totales",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 0.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT count(*) AS y_axis_1 FROM \"app_logs\" WHERE event = 'http_request'",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "app_logs",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "Peticiones",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "aggregationFunction": "count",
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 6,
+            "i": 1
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_2",
+          "type": "metric",
+          "title": "RPS promedio (ventana)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT count(*) / ((max(_timestamp) - min(_timestamp)) / 1000000.0 + 1) AS y_axis_1 FROM \"app_logs\" WHERE event = 'http_request'",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "app_logs",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "req/s",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 6,
+            "i": 2
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_3",
+          "type": "metric",
+          "title": "Tasa de error 4xx/5xx (%)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": "percent",
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT 100.0 * sum(CASE WHEN statuscode >= 400 THEN 1 ELSE 0 END) / count(*) AS y_axis_1 FROM \"app_logs\" WHERE event = 'http_request'",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "app_logs",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "% error",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 0,
+            "w": 12,
+            "h": 6,
+            "i": 3
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_4",
+          "type": "metric",
+          "title": "Latencia p95 global (ms)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": "milliseconds",
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT approx_percentile_cont(latency_ms, 0.95) AS y_axis_1 FROM \"app_logs\" WHERE event = 'http_request'",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "app_logs",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "p95 ms",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 36,
+            "y": 0,
+            "w": 12,
+            "h": 6,
+            "i": 4
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_5",
+          "type": "line",
+          "title": "Latencia p50 / p95 por endpoint (ms)",
+          "description": "p95 por endpoint (method + route). La tabla de la derecha muestra p50 y p95.",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": "milliseconds",
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT histogram(_timestamp) AS x_axis_1, method || ' ' || route AS breakdown_1, approx_percentile_cont(latency_ms, 0.95) AS y_axis_1 FROM \"app_logs\" WHERE event = 'http_request' GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "app_logs",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Tiempo",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "aggregationFunction": "histogram",
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "p95 ms",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [
+                  {
+                    "label": "Endpoint",
+                    "alias": "breakdown_1",
+                    "column": "breakdown_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 6,
+            "w": 24,
+            "h": 10,
+            "i": 5
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_6",
+          "type": "table",
+          "title": "Latencia por endpoint: p50, p95, promedio",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT method || ' ' || route AS x_axis_1, count(*) AS y_axis_1, approx_percentile_cont(latency_ms, 0.5) AS y_axis_2, approx_percentile_cont(latency_ms, 0.95) AS y_axis_3, avg(latency_ms) AS y_axis_4 FROM \"app_logs\" WHERE event = 'http_request' GROUP BY x_axis_1 ORDER BY y_axis_1 DESC",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "app_logs",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Endpoint",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Peticiones",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "p50 ms",
+                    "alias": "y_axis_2",
+                    "column": "y_axis_2",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "p95 ms",
+                    "alias": "y_axis_3",
+                    "column": "y_axis_3",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Promedio ms",
+                    "alias": "y_axis_4",
+                    "column": "y_axis_4",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 6,
+            "w": 24,
+            "h": 10,
+            "i": 6
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_7",
+          "type": "line",
+          "title": "Peticiones por segundo (RPS) por endpoint",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT histogram(_timestamp, '1 minute') AS x_axis_1, method || ' ' || route AS breakdown_1, count(*) / 60.0 AS y_axis_1 FROM \"app_logs\" WHERE event = 'http_request' GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "app_logs",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Tiempo",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "aggregationFunction": "histogram",
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "req/s",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [
+                  {
+                    "label": "Endpoint",
+                    "alias": "breakdown_1",
+                    "column": "breakdown_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 16,
+            "w": 24,
+            "h": 10,
+            "i": 7
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_8",
+          "type": "line",
+          "title": "Tasa de errores 4xx / 5xx en el tiempo (%)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": "percent",
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT histogram(_timestamp, '1 minute') AS x_axis_1, 100.0 * sum(CASE WHEN statuscode >= 400 AND statuscode < 500 THEN 1 ELSE 0 END) / count(*) AS y_axis_1, 100.0 * sum(CASE WHEN statuscode >= 500 THEN 1 ELSE 0 END) / count(*) AS y_axis_2 FROM \"app_logs\" WHERE event = 'http_request' GROUP BY x_axis_1 ORDER BY x_axis_1",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "app_logs",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Tiempo",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "aggregationFunction": "histogram",
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "% 4xx",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": "#c2410c",
+                    "isDerived": false
+                  },
+                  {
+                    "label": "% 5xx",
+                    "alias": "y_axis_2",
+                    "column": "y_axis_2",
+                    "color": "#b3261e",
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 16,
+            "w": 24,
+            "h": 10,
+            "i": 8
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_9",
+          "type": "pie",
+          "title": "Status codes",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT CAST(statuscode AS VARCHAR) AS x_axis_1, count(*) AS y_axis_1 FROM \"app_logs\" WHERE event = 'http_request' GROUP BY x_axis_1 ORDER BY y_axis_1 DESC",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "app_logs",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Status",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Peticiones",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "aggregationFunction": "count",
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 26,
+            "w": 16,
+            "h": 10,
+            "i": 9
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_10",
+          "type": "stacked",
+          "title": "Status codes por endpoint",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT method || ' ' || route AS x_axis_1, CAST(statuscode AS VARCHAR) AS breakdown_1, count(*) AS y_axis_1 FROM \"app_logs\" WHERE event = 'http_request' GROUP BY x_axis_1, breakdown_1",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "app_logs",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Endpoint",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Peticiones",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "aggregationFunction": "count",
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [
+                  {
+                    "label": "Status",
+                    "alias": "breakdown_1",
+                    "column": "breakdown_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 16,
+            "y": 26,
+            "w": 32,
+            "h": 10,
+            "i": 10
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_11",
+          "type": "line",
+          "title": "Histograma OTel http.server.duration: p95 por endpoint (ms)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": "milliseconds",
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": true,
+            "no_value_replacement": "N/D"
+          },
+          "queryType": "promql",
+          "queries": [
+            {
+              "query": "histogram_quantile(0.95, sum by (le, method, route) (rate(http_server_duration_bucket[5m])))",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "http_server_duration_bucket",
+                "stream_type": "metrics",
+                "x": [],
+                "y": [],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "{method} {route}",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 36,
+            "w": 24,
+            "h": 10,
+            "i": 11
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_12",
+          "type": "line",
+          "title": "Métrica OTel http.server.requests: RPS por endpoint y status",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": true,
+            "no_value_replacement": "N/D"
+          },
+          "queryType": "promql",
+          "queries": [
+            {
+              "query": "sum by (method, route, status_code) (rate(http_server_requests[5m]))",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "http_server_requests",
+                "stream_type": "metrics",
+                "x": [],
+                "y": [],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "{method} {route} {status_code}",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 36,
+            "w": 24,
+            "h": 10,
+            "i": 12
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_13",
+          "type": "table",
+          "title": "Logs recientes (requests y excepciones)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT _timestamp AS x_axis_1, severity AS y_axis_1, method AS y_axis_2, route AS y_axis_3, statuscode AS y_axis_4, latency_ms AS y_axis_5, trace_id AS y_axis_6, body AS y_axis_7 FROM \"app_logs\" ORDER BY _timestamp DESC LIMIT 50",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "app_logs",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Timestamp",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Nivel",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Método",
+                    "alias": "y_axis_2",
+                    "column": "y_axis_2",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Ruta",
+                    "alias": "y_axis_3",
+                    "column": "y_axis_3",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Status",
+                    "alias": "y_axis_4",
+                    "column": "y_axis_4",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Latencia ms",
+                    "alias": "y_axis_5",
+                    "column": "y_axis_5",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "trace_id",
+                    "alias": "y_axis_6",
+                    "column": "y_axis_6",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Mensaje",
+                    "alias": "y_axis_7",
+                    "column": "y_axis_7",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 46,
+            "w": 48,
+            "h": 12,
+            "i": 13
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_14",
+          "type": "table",
+          "title": "Trazas recientes (spans raíz de NGINX)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT _timestamp AS x_axis_1, operation_name AS y_axis_1, duration / 1000.0 AS y_axis_2, span_status AS y_axis_3, trace_id AS y_axis_4 FROM \"default\" WHERE service_name = 'proyecto2-nginx' ORDER BY _timestamp DESC LIMIT 30",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "default",
+                "stream_type": "traces",
+                "x": [
+                  {
+                    "label": "Timestamp",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Operación",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Duración ms",
+                    "alias": "y_axis_2",
+                    "column": "y_axis_2",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Estado",
+                    "alias": "y_axis_3",
+                    "column": "y_axis_3",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "trace_id",
+                    "alias": "y_axis_4",
+                    "column": "y_axis_4",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 58,
+            "w": 48,
+            "h": 10,
+            "i": 14
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "list": [],
+    "showDynamicFilters": true
+  },
+  "defaultDatetimeDuration": {
+    "type": "relative",
+    "relativeTimePeriod": "1h",
+    "startTime": 0,
+    "endTime": 0
+  }
+}

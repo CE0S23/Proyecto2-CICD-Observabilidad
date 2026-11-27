@@ -1,0 +1,632 @@
+{
+  "version": 5,
+  "dashboardId": "7531921562635599872",
+  "title": "CI/CD",
+  "description": "Ejecuciones del pipeline, éxito vs. fallo, despliegues y último commit (RF-03 / RF-06)",
+  "role": "",
+  "owner": "admin@proyecto2.com",
+  "created": "2026-11-27T03:36:31.744239308Z",
+  "tabs": [
+    {
+      "tabId": "default",
+      "name": "Default",
+      "panels": [
+        {
+          "id": "Panel_1",
+          "type": "metric",
+          "title": "Ejecuciones de pruebas",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 0.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT count(*) AS y_axis_1 FROM \"cicd_pipeline\" WHERE event = 'test_run'",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "cicd_pipeline",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "Ejecuciones",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "aggregationFunction": "count",
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 6,
+            "i": 1
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_2",
+          "type": "metric",
+          "title": "Pruebas exitosas (%)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": "percent",
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT 100.0 * sum(CASE WHEN status = 'success' THEN 1 ELSE 0 END) / count(*) AS y_axis_1 FROM \"cicd_pipeline\" WHERE event = 'test_run'",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "cicd_pipeline",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "% éxito",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 6,
+            "i": 2
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_3",
+          "type": "metric",
+          "title": "Despliegues exitosos",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 0.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT count(*) AS y_axis_1 FROM \"cicd_pipeline\" WHERE event = 'deploy' AND status = 'success'",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "cicd_pipeline",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "Deploys",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "aggregationFunction": "count",
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 0,
+            "w": 12,
+            "h": 6,
+            "i": 3
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_4",
+          "type": "metric",
+          "title": "Último commit desplegado",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT substr(commit_sha, 1, 7) AS y_axis_1 FROM \"cicd_pipeline\" WHERE event = 'deploy' AND status = 'success' ORDER BY _timestamp DESC LIMIT 1",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "cicd_pipeline",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "commit",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 36,
+            "y": 0,
+            "w": 12,
+            "h": 6,
+            "i": 4
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_5",
+          "type": "pie",
+          "title": "Éxito vs. fallo (pruebas)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT status AS x_axis_1, count(*) AS y_axis_1 FROM \"cicd_pipeline\" WHERE event = 'test_run' GROUP BY x_axis_1",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "cicd_pipeline",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Estado",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Ejecuciones",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "aggregationFunction": "count",
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 6,
+            "w": 16,
+            "h": 10,
+            "i": 5
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_6",
+          "type": "stacked",
+          "title": "Ejecuciones del pipeline en el tiempo",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT histogram(_timestamp, '10 minutes') AS x_axis_1, event || ':' || status AS breakdown_1, count(*) AS y_axis_1 FROM \"cicd_pipeline\" GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "cicd_pipeline",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Tiempo",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "aggregationFunction": "histogram",
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Eventos",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "aggregationFunction": "count",
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [
+                  {
+                    "label": "Evento",
+                    "alias": "breakdown_1",
+                    "column": "breakdown_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 16,
+            "y": 6,
+            "w": 32,
+            "h": 10,
+            "i": 6
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_7",
+          "type": "bar",
+          "title": "Pruebas pasadas vs. fallidas por ejecución",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT run_number || ' · ' || substr(commit_sha, 1, 7) AS x_axis_1, max(tests_passed) AS y_axis_1, max(tests_failed) AS y_axis_2 FROM \"cicd_pipeline\" WHERE event = 'test_run' GROUP BY x_axis_1 ORDER BY x_axis_1",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "cicd_pipeline",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Run · commit",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Pasadas",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": "#1f6f5c",
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Fallidas",
+                    "alias": "y_axis_2",
+                    "column": "y_axis_2",
+                    "color": "#b3261e",
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 16,
+            "w": 48,
+            "h": 10,
+            "i": 7
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_8",
+          "type": "table",
+          "title": "Registro de ejecuciones del pipeline (logs)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT _timestamp AS x_axis_1, event AS y_axis_1, status AS y_axis_2, substr(commit_sha, 1, 7) AS y_axis_3, branch AS y_axis_4, actor AS y_axis_5, tests_passed AS y_axis_6, tests_failed AS y_axis_7, ssh_executed AS y_axis_8, run_url AS y_axis_9 FROM \"cicd_pipeline\" ORDER BY _timestamp DESC LIMIT 50",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "cicd_pipeline",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Timestamp",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Evento",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Estado",
+                    "alias": "y_axis_2",
+                    "column": "y_axis_2",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Commit",
+                    "alias": "y_axis_3",
+                    "column": "y_axis_3",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Rama",
+                    "alias": "y_axis_4",
+                    "column": "y_axis_4",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Actor",
+                    "alias": "y_axis_5",
+                    "column": "y_axis_5",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Pasadas",
+                    "alias": "y_axis_6",
+                    "column": "y_axis_6",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Fallidas",
+                    "alias": "y_axis_7",
+                    "column": "y_axis_7",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "SSH",
+                    "alias": "y_axis_8",
+                    "column": "y_axis_8",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Run",
+                    "alias": "y_axis_9",
+                    "column": "y_axis_9",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 26,
+            "w": 48,
+            "h": 12,
+            "i": 8
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "list": [],
+    "showDynamicFilters": true
+  },
+  "defaultDatetimeDuration": {
+    "type": "relative",
+    "relativeTimePeriod": "1d",
+    "startTime": 0,
+    "endTime": 0
+  }
+}

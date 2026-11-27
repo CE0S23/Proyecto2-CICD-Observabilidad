@@ -1,0 +1,823 @@
+{
+  "version": 5,
+  "dashboardId": "7531921562170032128",
+  "title": "Infraestructura EC2",
+  "description": "CPU, RAM, ancho de banda, disco y temperatura de la instancia EC2 (RF-05)",
+  "role": "",
+  "owner": "admin@proyecto2.com",
+  "created": "2026-11-27T03:36:31.628740618Z",
+  "tabs": [
+    {
+      "tabId": "default",
+      "name": "Default",
+      "panels": [
+        {
+          "id": "Panel_1",
+          "type": "gauge",
+          "title": "CPU actual (%)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": "percent",
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT 100 * (1 - avg(value)) AS y_axis_1 FROM \"system_cpu_utilization\" WHERE state = 'idle' AND _timestamp >= (SELECT max(_timestamp) - 60000000 FROM \"system_cpu_utilization\")",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "system_cpu_utilization",
+                "stream_type": "metrics",
+                "x": [],
+                "y": [
+                  {
+                    "label": "CPU %",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 8,
+            "i": 1
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_2",
+          "type": "gauge",
+          "title": "RAM usada (%)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": "percent",
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT 100 * avg(value) AS y_axis_1 FROM \"system_memory_utilization\" WHERE state = 'used' AND _timestamp >= (SELECT max(_timestamp) - 20000000 FROM \"system_memory_utilization\")",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "system_memory_utilization",
+                "stream_type": "metrics",
+                "x": [],
+                "y": [
+                  {
+                    "label": "RAM %",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 8,
+            "i": 2
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_3",
+          "type": "gauge",
+          "title": "Disco raíz usado (%)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": "percent",
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT 100 * max(value) AS y_axis_1 FROM \"system_filesystem_utilization\" WHERE mountpoint = '/' AND _timestamp >= (SELECT max(_timestamp) - 60000000 FROM \"system_filesystem_utilization\")",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "system_filesystem_utilization",
+                "stream_type": "metrics",
+                "x": [],
+                "y": [
+                  {
+                    "label": "Disco %",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 0,
+            "w": 12,
+            "h": 8,
+            "i": 3
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_4",
+          "type": "metric",
+          "title": "Temperatura (°C)",
+          "description": "EC2 no expone sensores térmicos al invitado; la sonda lee /sys/class/thermal y hwmon y reporta N/D sin inventar datos.",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT CASE WHEN max(temperature_c) IS NULL THEN 'N/D' ELSE CAST(max(temperature_c) AS VARCHAR) END AS y_axis_1 FROM \"host_temperature\" WHERE _timestamp = (SELECT max(_timestamp) FROM \"host_temperature\")",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "host_temperature",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "°C",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 36,
+            "y": 0,
+            "w": 12,
+            "h": 8,
+            "i": 4
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_5",
+          "type": "area",
+          "title": "CPU (%) en el tiempo",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "unit": "percent",
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT histogram(_timestamp, '30 seconds') AS x_axis_1, 100 * (1 - avg(value)) AS y_axis_1 FROM \"system_cpu_utilization\" WHERE state = 'idle' GROUP BY x_axis_1 ORDER BY x_axis_1",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "system_cpu_utilization",
+                "stream_type": "metrics",
+                "x": [
+                  {
+                    "label": "Tiempo",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "aggregationFunction": "histogram",
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "CPU %",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": "#1f6f5c",
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 8,
+            "w": 24,
+            "h": 10,
+            "i": 5
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_6",
+          "type": "area-stacked",
+          "title": "Memoria RAM (MiB)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT histogram(_timestamp, '30 seconds') AS x_axis_1, state AS breakdown_1, avg(value) / 1048576 AS y_axis_1 FROM \"system_memory_usage\" GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "system_memory_usage",
+                "stream_type": "metrics",
+                "x": [
+                  {
+                    "label": "Tiempo",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "aggregationFunction": "histogram",
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "MiB",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [
+                  {
+                    "label": "Estado",
+                    "alias": "breakdown_1",
+                    "column": "breakdown_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 8,
+            "w": 24,
+            "h": 10,
+            "i": 6
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_7",
+          "type": "line",
+          "title": "Ancho de banda ens5 (KB/s, entrada y salida)",
+          "description": "Derivada del contador acumulado system.network.io (bytes) de la interfaz principal ens5.",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT x_axis_1, direction AS breakdown_1, (max(v) - min(v)) / 1024.0 / NULLIF((max(ts) - min(ts)) / 1000000.0, 0) AS y_axis_1 FROM (SELECT histogram(_timestamp, '1 minute') AS x_axis_1, _timestamp AS ts, direction, value AS v FROM \"system_network_io\" WHERE device = 'ens5') GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "system_network_io",
+                "stream_type": "metrics",
+                "x": [
+                  {
+                    "label": "Tiempo",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "aggregationFunction": "histogram",
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "KB/s",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [
+                  {
+                    "label": "Dirección",
+                    "alias": "breakdown_1",
+                    "column": "breakdown_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 18,
+            "w": 24,
+            "h": 10,
+            "i": 7
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_8",
+          "type": "line",
+          "title": "Ancho de banda (PromQL rate, bytes/s)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": true,
+            "no_value_replacement": "N/D"
+          },
+          "queryType": "promql",
+          "queries": [
+            {
+              "query": "sum by (direction) (rate(system_network_io{device=\"ens5\"}[2m]))",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "system_network_io",
+                "stream_type": "metrics",
+                "x": [],
+                "y": [],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "{direction}",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 18,
+            "w": 24,
+            "h": 10,
+            "i": 8
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_9",
+          "type": "line",
+          "title": "Disco: I/O (KB/s lectura/escritura)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT x_axis_1, direction AS breakdown_1, (max(v) - min(v)) / 1024.0 / NULLIF((max(ts) - min(ts)) / 1000000.0, 0) AS y_axis_1 FROM (SELECT histogram(_timestamp, '1 minute') AS x_axis_1, _timestamp AS ts, direction, value AS v FROM \"system_disk_io\" WHERE device = 'nvme0n1') GROUP BY x_axis_1, breakdown_1 ORDER BY x_axis_1",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "system_disk_io",
+                "stream_type": "metrics",
+                "x": [
+                  {
+                    "label": "Tiempo",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "aggregationFunction": "histogram",
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "KB/s",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [
+                  {
+                    "label": "Dirección",
+                    "alias": "breakdown_1",
+                    "column": "breakdown_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 28,
+            "w": 24,
+            "h": 10,
+            "i": 9
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_10",
+          "type": "line",
+          "title": "Load average (1m / 5m / 15m)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT histogram(_timestamp, '30 seconds') AS x_axis_1, avg(value) AS y_axis_1 FROM \"system_cpu_load_average_1m\" GROUP BY x_axis_1 ORDER BY x_axis_1",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "system_cpu_load_average_1m",
+                "stream_type": "metrics",
+                "x": [
+                  {
+                    "label": "Tiempo",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "aggregationFunction": "histogram",
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "load 1m",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": "#8a5a00",
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 24,
+            "y": 28,
+            "w": 24,
+            "h": 10,
+            "i": 10
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        },
+        {
+          "id": "Panel_11",
+          "type": "table",
+          "title": "Temperatura: estado de la sonda (evidencia)",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2.0,
+            "axis_border_show": false,
+            "base_map": null,
+            "map_view": null,
+            "connect_nulls": false,
+            "no_value_replacement": "N/D",
+            "wrap_table_cells": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT _timestamp AS x_axis_1, status AS y_axis_1, available AS y_axis_2, sensors_found AS y_axis_3, thermal_dir AS y_axis_4, hwmon_dir AS y_axis_5, invalid_sensors AS y_axis_6, reason AS y_axis_7 FROM \"host_temperature\" ORDER BY _timestamp DESC LIMIT 10",
+              "vrlFunctionQuery": null,
+              "customQuery": true,
+              "fields": {
+                "stream": "host_temperature",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "Timestamp",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "Estado",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Disponible",
+                    "alias": "y_axis_2",
+                    "column": "y_axis_2",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Sensores válidos",
+                    "alias": "y_axis_3",
+                    "column": "y_axis_3",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "/sys/class/thermal",
+                    "alias": "y_axis_4",
+                    "column": "y_axis_4",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "/sys/class/hwmon",
+                    "alias": "y_axis_5",
+                    "column": "y_axis_5",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Lecturas inválidas",
+                    "alias": "y_axis_6",
+                    "column": "y_axis_6",
+                    "color": null,
+                    "isDerived": false
+                  },
+                  {
+                    "label": "Motivo",
+                    "alias": "y_axis_7",
+                    "column": "y_axis_7",
+                    "color": null,
+                    "isDerived": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "limit": 0.0,
+                "min": 0.0,
+                "max": 100.0,
+                "time_shift": []
+              }
+            }
+          ],
+          "layout": {
+            "x": 0,
+            "y": 38,
+            "w": 48,
+            "h": 8,
+            "i": 11
+          },
+          "htmlContent": "",
+          "markdownContent": ""
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "list": [],
+    "showDynamicFilters": true
+  },
+  "defaultDatetimeDuration": {
+    "type": "relative",
+    "relativeTimePeriod": "1h",
+    "startTime": 0,
+    "endTime": 0
+  }
+}

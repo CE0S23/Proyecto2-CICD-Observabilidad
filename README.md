@@ -57,6 +57,8 @@ push a main ─▶ test (lint → Jest → build → docker compose → Playwrig
                           └──▶ report-deploy (siempre) ── POST cicd_pipeline (event=deploy, status success/failure/skipped)
 ```
 Si las pruebas fallan, `deploy` queda **skipped** y **no hay conexión SSH**.
+Jest y Playwright se ejecutan **ambos** en cada corrida (`continue-on-error` + paso "Veredicto de pruebas"),
+de modo que un error intencional en un endpoint es detectado por Jest **y** por Playwright antes de bloquear el deploy.
 
 ## 2. Estructura
 
